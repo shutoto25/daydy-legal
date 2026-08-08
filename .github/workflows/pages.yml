@@ -1,0 +1,39 @@
+name: Deploy to GitHub Pages
+
+# 静的 HTML をそのまま配信するだけなのでビルド工程は持たない。
+# Pages の Source を「GitHub Actions」にしてこのワークフローから公開する。
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 公開は直列に行う。実行中のデプロイは打ち切らず完了させる。
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/configure-pages@v6
+
+      # リポジトリ直下をそのまま成果物にする（.git / .github は自動で除外される）
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: .
+
+      # deploy-pages の timeout 入力は内部で MAX_TIMEOUT(600000ms) に丸められるため、
+      # 10 分より長く待つことはできない。指定しても無意味なので既定値のままにする。
+      - id: deployment
+        uses: actions/deploy-pages@v5
